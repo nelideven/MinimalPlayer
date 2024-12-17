@@ -9,7 +9,6 @@
 import subprocess
 import os
 import argparse
-import re
 import sys
 
 def get_filename_from_bash():
@@ -30,9 +29,6 @@ def get_filename_from_bash():
     except subprocess.CalledProcessError as e:
         print(f"Error: {e}")
         return None
-
-
-RE_SPACE = re.compile('.*\n+$', re.M)
 
 def check_binary(binary):
     return subprocess.call(['which', binary], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
