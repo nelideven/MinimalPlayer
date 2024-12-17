@@ -5,6 +5,8 @@
 #* MinimalPlayer is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #*
 #* You should have received a copy of the GNU General Public License (LICENSE.txt) along with this project. If not, see <https://www.gnu.org/licenses/>.
+#*
+#* You should also have a copy of the mp_autocomplete script, which is required for the file name input in this software (if you downloaded the source code). 
 
 import subprocess
 import os
