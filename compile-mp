@@ -1,0 +1,36 @@
+#!/bin/bash
+pyinstaller --onefile --add-data "mp_autocomplete:." minimalplayer.py
+pwd
+rm -r "$(pwd)/build"
+rm -r "$(pwd)/minimalplayer.spec"
+
+INSTALL=false
+SCRIPT_NAME="your_script.py"
+OUTPUT_DIR="dist"
+
+# Parse arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --install) INSTALL=true ;;
+        *) echo "Unknown parameter passed: $1"; exit 1 ;;
+    esac
+    shift
+done
+if [ "$INSTALL" = true ]; then
+  sudo mv -f "$(pwd)/dist/minimalplayer" /usr/bin
+  rm -r "$(pwd)/dist"
+else
+  read -p "Install it to /usr/bin? (y/n): " usrinst
+  if [ "$usrinst" == "y" ]; then
+    sudo mv -f "$(pwd)/dist/minimalplayer" /usr/bin
+    rm -r "$(pwd)/dist"
+  fi
+fi
+if [ "$INSTALL" = true ]; then
+  sudo cp -r "$(pwd)/mp-extension.desktop" /usr/share/applications
+else
+  read -p "Install file extension? (y/n): " fexinst
+  if [ "$fexinst" == "y" ]; then
+    sudo cp -r "$(pwd)/mp-extension.desktop" /usr/share/applications
+  fi
+fi

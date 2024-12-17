@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=MinimalPlayer
+Comment=A CLI-based audio player based on FFmpeg and audio players (pacat/pa-play/paplay/pw-play)
+Exec=minimalplayer --file %f --extm
+Terminal=false
+Categories=AudioVideo;Player;Video;
+MimeType=audio/mpeg;video/mp4;video/x-matroska;video/x-msvideo;application/ogg;
+NoDisplay=true

@@ -1,0 +1,8 @@
+Welcome! If you downloaded this software (either the binary or the source, I don't care which one you download), I am sure you are 98.89% downloading this because you are curious. No need to hide this fact.
+This media player is based on FFmpeg and your usual pulseaudio/pipewire utilities that would usually come preinstalled with your distro, that is if you're not using lightweight distros like arch linux or server distros. But seriously, all you got to do is just to type:
+ffmpeg -i "(your audio file path)" -ar 44100 -f s16le -loglevel warning -stats - | (whatever utility, either pw-cat, pacat, or idk) -
+and that's set, right? Well, I don't know it's your option anyway.
+..What's that? Oh you are lazy to type things so you want to just double-click and boom, a ready to use media player pops up, no?
+Well, there are a bunch of utilities out there that is way, WAY better than this cli-based media player, CLI-BASED, yes, **CLI-BASED**. Though yes if you installed this media player's file extension (the mp-extension.desktop) to either /usr/share/applications or your user's ~/.local/share/applications, you can open audio/video files with this. sure buddy.
+You REALLY want to use this program? Okay, so this program does.. (after two hours of explanation) ..and it has custom speeds you can do, and there's much flexibility you can explore, did you get what i mean so far? no? I'm not repeating it.
+Have your freedom, explore the program as you like, modify this software, redistribute it - it's up to you, I don't care. Go crazy with it. Though keep in mind this program is licensed with GPLv3, but that only stop corporate f*cks.

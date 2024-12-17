@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Ensure characters are displayed correctly
+stty sane
+
+# Prompt the user for a filename with autocompletion
+while true; do
+    read -e -p "Enter the audio file path: " filename
+    ext_filename=$(eval echo "$filename")
+    if [ $? -eq 0 ]; then
+        break
+    fi
+done
+
+# Write the result to a temporary file
+echo "$ext_filename" > /tmp/filename_output.txt
