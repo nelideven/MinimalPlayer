@@ -19,7 +19,7 @@ def get_filename_from_bash():
         if getattr(sys, 'frozen', False):
             script_path = os.path.join(sys._MEIPASS, 'mp_autocomplete')
         else:
-            script_path = os.path.join(os.path.dirname(__file__), 'prompt.sh')
+            script_path = os.path.join(os.path.dirname(__file__), 'mp_autocomplete')
 
         # Run the bash script and capture the output
         subprocess.run(['bash', script_path], check=True)
