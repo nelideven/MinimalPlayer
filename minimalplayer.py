@@ -42,20 +42,25 @@ def calculate_sample_rate(speed_factor, pipe_path=None):
     else:
         return int(original_rate * speed_factor)
 
-def play_audio(player, file_path, new_sample_rate, pipe_path=None, ffmpeg_exist=True):
+def play_audio(player, file_path, new_sample_rate, pipe_path=None, ffmpeg_exist=True, out_format='s16le'):
     if pipe_path:
         if ffmpeg_exist:
-            print(f'Piping converted file {file_path} to {pipe_path}. Press q to exit')
+            print(f'Piping converted file {file_path} with format {out_format} to {pipe_path}. Press q to exit')
             if pipe_path == "-":
-                command = f'ffmpeg -i "{file_path}" -ar {new_sample_rate} -f s16le -loglevel warning -stats - '
+                command = f'ffmpeg -i "{file_path}" -ar {new_sample_rate} -f {out_format} -loglevel warning -stats - '
             else:
-                command = f'ffmpeg -i "{file_path}" -ar {new_sample_rate} -f s16le -loglevel warning -stats {pipe_path} -y'
+                command = f'ffmpeg -i "{file_path}" -ar {new_sample_rate} -f {out_format} -loglevel warning -stats {pipe_path} -y'
         else:
-            print(f'Piping converted file {file_path} to {pipe_path} without speed modifications. Press CTRL+C to exit')
-            if pipe_path == "-":
-                command = f'cat "{file_path}"'
+            ncvconfirm = input(f'It is NOT recommended to continue, since this software would pipe the original (UNCONVERTED) audio to {pipe_path}!!. Do you REALLY want to continue? (unless you want to hear pacat/pw-cat (possibly) making weird noises so..) (y/n): ')
+            if ncvconfirm == "y":
+                print(f'Piping original file {file_path} to {pipe_path} without speed modifications. Press CTRL+C to exit')
+                if pipe_path == "-":
+                    command = f'cat "{file_path}"'
+                else:
+                    command = f'cat "{file_path}" > "{pipe_path}"'
             else:
-                command = f'cat "{file_path}" > "{pipe_path}"'
+                print('User aborted. Exiting..')
+                exit(0)
     else:
         if ffmpeg_exist:
             print(f'Playing audio file {file_path}. Press q to exit')
@@ -80,12 +85,17 @@ def main():
     parser.add_argument('-p', '--pipe', nargs='?', const=True, default=False, help='Enable pipe mode. Optionally provide the pipe path or "-" for stdout')
     parser.add_argument('-f', '--file', type=str, help='Audio file path')
     parser.add_argument('-s', '--speed', type=float, default=0.0, help='Speed factor (e.g., 0.5 for half speed, 2.0 for double speed)')
-    parser.add_argument('--extm', action="store_true")
+    parser.add_argument('-o', '--output', type=str, help='Output file format (only for pipe mode)')
+    parser.add_argument('--extm', action="store_true", help='You might not want to mess with this...')
 
     args = parser.parse_args()
     pipe_mode = args.pipe
     file_path = args.file
     speed_factor = args.speed
+    out_format = args.output
+    
+    if args.output and not args.pipe:
+        parser.error("-o/--output requires -p/--pipe to be specified")
 
     # Checking if FFmpeg exists
     if check_binary("ffmpeg"):
@@ -146,10 +156,12 @@ def main():
             pipe_path = input("Enter the named pipe (or input a '-' to output via stdout): ").strip()
         else:
             pipe_path = pipe_mode
-
         if not file_path:
             file_path = get_filename_from_bash()
-
+        if not out_format:
+            out_format = input('Enter the output format (default; s16le. See ffmpeg -formats for more info): ')
+            if not out_format:
+                out_format = "s16le"
         if speed_factor == 0.0:
             if ffmpeg_exist:
                 if args.extm:
@@ -162,7 +174,6 @@ def main():
     else:
         if not file_path:
             file_path = get_filename_from_bash()
-
         if speed_factor == 0.0:
             if ffmpeg_exist:
                 if args.extm:
@@ -175,7 +186,7 @@ def main():
 
     new_sample_rate = calculate_sample_rate(speed_factor, pipe_path if pipe_mode else None)
     print(f'Sample rate: {new_sample_rate}')
-    play_audio(player, file_path, new_sample_rate, pipe_path if pipe_mode else None, ffmpeg_exist)
+    play_audio(player, file_path, new_sample_rate, pipe_path if pipe_mode else None, ffmpeg_exist, out_format)
 
 if __name__ == '__main__':
     main()
