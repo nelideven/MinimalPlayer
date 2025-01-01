@@ -1,5 +1,5 @@
 # MinimalPlayer
-A CLI-based player that uses FFmpeg and basic pulseaudio/pipewire tools to play audio, with speed configuration.
+A CLI-based player that uses FFmpeg and basic pulseaudio/pipewire tools (or ffplay specially for non-linux os) to play audio, with speed configuration.
 <br>Now you might be confused: Why does this software exist in the first place?
 <br>..yes
 <br>
