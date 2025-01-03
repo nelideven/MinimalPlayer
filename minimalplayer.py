@@ -6,34 +6,57 @@
 #*
 #* You should have received a copy of the GNU General Public License (LICENSE) along with this project. If not, see <https://www.gnu.org/licenses/>.
 #*
-#* You should also have a copy of the mp_autocomplete script, which is required for the file name input in this software (if you downloaded the source code). 
+#* You should also have a copy of the mp_autocomplete (for Linux and macOS) or mp_autocomplete.ps1 (for Windows) script, which is required for the file name input in this software (if you downloaded the source code). 
 
 import subprocess
 import os
 import argparse
 import sys
+import time
 
 def get_filename_from_bash():
-    try:
-        # Get the path to the prompt.sh script
-        if getattr(sys, 'frozen', False):
-            script_path = os.path.join(sys._MEIPASS, 'mp_autocomplete')
-        else:
-            script_path = os.path.join(os.path.dirname(__file__), 'mp_autocomplete')
+    if os.name == 'nt':  # Windows
+        try:
+            # Get the path to the batch script
+            if getattr(sys, 'frozen', False):
+                script_path = os.path.join(sys._MEIPASS, 'mp_autocomplete.bat')
+            else:
+                script_path = os.path.join(os.path.dirname(__file__), 'mp_autocomplete.bat')
+            
+            command = f'cmd /c "{script_path}"'
+            subprocess.run(command, check=True)
 
-        # Run the bash script and capture the output
-        subprocess.run(['bash', script_path], check=True)
+            with open(os.path.join(os.getenv('TEMP'), 'filename_output.txt'), 'r') as file:
+                filename = file.read().strip()
+            return filename
+        except subprocess.CalledProcessError as e:
+            print(f"Error: {e}")
+            return None
+    else:  # Linux/MacOS
+        try:
+            # Get the path to the sh script
+            if getattr(sys, 'frozen', False):
+                script_path = os.path.join(sys._MEIPASS, 'mp_autocomplete')
+            else:
+                script_path = os.path.join(os.path.dirname(__file__), 'mp_autocomplete')
 
-        # Read the output from the temporary file
-        with open('/tmp/filename_output.txt', 'r') as file:
-            filename = file.read().strip()
-        return filename
-    except subprocess.CalledProcessError as e:
-        print(f"Error: {e}")
-        return None
+            # Run the bash script and capture the output
+            subprocess.run(['bash', script_path], check=True)
+
+            # Read the output from the temporary file
+            with open('/tmp/filename_output.txt', 'r') as file:
+                filename = file.read().strip()
+            return filename
+        except subprocess.CalledProcessError as e:
+            print(f"Error: {e}")
+            return None
 
 def check_binary(binary):
-    return subprocess.call(['which', binary], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
+    if os.name == "nt":
+        finder = "where"
+    elif os.name == "posix":
+        finder = "which"
+    return subprocess.call([finder, binary], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
 
 def calculate_sample_rate(speed_factor, pipe_path=None):
     original_rate = 44100
@@ -72,6 +95,14 @@ def play_audio(player, file_path, new_sample_rate, pipe_path=None, ffmpeg_exist=
                 command = f'ffmpeg -i "{file_path}" -ar 44100 -f s16le -loglevel warning -stats - | pw-cat --rate={new_sample_rate} -p -'
             elif player == "paplay":
                 command = f'ffmpeg -i "{file_path}" -ar 44100 -f s16le -loglevel warning -stats - | paplay --rate={new_sample_rate} --latency=1'
+            elif player == "ffplay":
+                if os.name == "nt":
+                    if not file_path:
+                        command = f'ffmpeg -i {file_path} -ar 44100 -f wav -loglevel warning -stats - | ffplay -ar {new_sample_rate} -loglevel warning -autoexit -'
+                    else:
+                        command = f'ffmpeg -i "{file_path}" -ar 44100 -f wav -loglevel warning -stats - | ffplay -ar {new_sample_rate} -loglevel warning -autoexit -'
+                else:
+                    command = f'ffmpeg -i "{file_path}" -ar 44100 -f wav -loglevel warning -stats - | ffplay -ar {new_sample_rate} -loglevel warning -autoexit -'
         else:
             print(f'Playing audio file {file_path} without speed modifications. Press CTRL+C to exit')
             if player == "paplay":
@@ -106,19 +137,50 @@ def main():
     # Determine which player to use
     player = ""
     if ffmpeg_exist:
-        if check_binary("pacat") & check_binary("pw-cat"):
-            if pipe_mode:
-                player = None
-            elif args.extm:
+        if os.name == "posix":
+            if check_binary("pacat") & check_binary("pw-cat"):
+                if pipe_mode:
+                    player = None
+                elif args.extm:
+                    player = "pw-cat"
+                else:
+                    player = input("You have pw-cat and pacat. Choose one to use (or choose others (ffplay, paplay, pw-play)): ").strip()
+            elif check_binary("pw-cat"):
                 player = "pw-cat"
+            elif check_binary("pacat"):
+                player = "pacat"
             else:
-                player = input("You have pw-cat and pacat. Choose one to use: ").strip()
-        elif check_binary("pw-cat"):
-            player = "pw-cat"
-        elif check_binary("pacat"):
-            player = "pacat"
+                print("Neither pacat nor pw-cat detected! Falling back to paplay/pw-play")
+                if check_binary("paplay") & check_binary("pw-play"):
+                    if pipe_mode:
+                        player = None
+                    elif args.extm:
+                        player = "pw-play"
+                    else:
+                        player = input("You have pw-play and paplay. Choose one to use: ").strip()
+                elif check_binary("pw-play"):
+                    player = "pw-play"
+                elif check_binary("paplay"):
+                    player = "paplay"
+                else:
+                    print("Neither pacat, paplay, pw-cat, nor pw-play detected! Falling back to FFplay")
+                    if check_binary("ffplay"):
+                        player = "ffplay"
+                    else:
+                        print("Neither pacat, paplay, pw-cat, pw-play, nor FFplay detected! Exiting..")
+                        time.sleep(1)
+                        exit(127)
         else:
-            print("Neither pacat nor pw-cat detected! Falling back to paplay/pw-play")
+            if check_binary("ffplay"):
+                player = "ffplay"
+            else:
+                print("FFplay not detected! Make sure FFplay is located in the environment variables. Exiting..")
+                time.sleep(1)
+                exit(127)
+
+    else:
+        if os.name == "posix":
+            print("FFmpeg does not exist! Audio file would be played without modifications (now relies on paplay/pw-play)")
             if check_binary("paplay") & check_binary("pw-play"):
                 if pipe_mode:
                     player = None
@@ -131,23 +193,12 @@ def main():
             elif check_binary("paplay"):
                 player = "paplay"
             else:
-                print("Neither pacat, paplay, pw-cat, nor pw-play detected! Exiting..")
+                print("Neither paplay nor pw-play detected! Exiting..")
+                time.sleep(1)
                 exit(127)
-    else:
-        print("FFmpeg does not exist! Audio file would be played without modifications (now relies on paplay/pw-play)")
-        if check_binary("paplay") & check_binary("pw-play"):
-            if pipe_mode:
-                player = None
-            elif args.extm:
-                player = "pw-play"
-            else:
-                player = input("You have pw-play and paplay. Choose one to use: ").strip()
-        elif check_binary("pw-play"):
-            player = "pw-play"
-        elif check_binary("paplay"):
-            player = "paplay"
         else:
-            print("Neither paplay nor pw-play detected! Exiting..")
+            print("FFmpeg does not exist! Generally FFplay relies on FFmpeg, so exiting..")
+            time.sleep(1)
             exit(127)
     
     # Handle pipe mode and arguments
@@ -165,20 +216,29 @@ def main():
         if speed_factor == 0.0:
             if ffmpeg_exist:
                 if args.extm:
-                    zen_in = subprocess.run(["zenity", "--entry", "--title=Speed factor", "--text=Enter the speed factor (e.g., 0.5 for half speed, 2.0 for double speed)"], capture_output=True, text=True)
-                    speed_factor = float(zen_in.stdout.strip())
+                    if os.name == "nt":
+                        print ("You are NOT using Linux..")
+                        speed_factor = float(input("Enter the speed factor (e.g., 0.5 for half speed, 2.0 for double speed): ").strip())
+                    else:
+                        zen_in = subprocess.run(["zenity", "--entry", "--title=Speed factor", "--text=Enter the speed factor (e.g., 0.5 for half speed, 2.0 for double speed)"], capture_output=True, text=True)
+                        speed_factor = float(zen_in.stdout.strip())
                 else:
                     speed_factor = float(input("Enter the speed factor (e.g., 0.5 for half speed, 2.0 for double speed): ").strip())
             else:
                 print("FFmpeg does not exist! Piped audio will not have any speed adjustments!")
+
     else:
         if not file_path:
             file_path = get_filename_from_bash()
         if speed_factor == 0.0:
             if ffmpeg_exist:
                 if args.extm:
-                    zen_in = subprocess.run(["zenity", "--entry", "--title=Speed factor", "--text=Enter the speed factor (e.g., 0.5 for half speed, 2.0 for double speed)"], capture_output=True, text=True)
-                    speed_factor = float(zen_in.stdout.strip())
+                    if os.name == "nt":
+                        print ("You are NOT using Linux..")
+                        speed_factor = float(input("Enter the speed factor (e.g., 0.5 for half speed, 2.0 for double speed): ").strip())
+                    else:
+                        zen_in = subprocess.run(["zenity", "--entry", "--title=Speed factor", "--text=Enter the speed factor (e.g., 0.5 for half speed, 2.0 for double speed)"], capture_output=True, text=True)
+                        speed_factor = float(zen_in.stdout.strip())
                 else:
                     speed_factor = float(input("Enter the speed factor (e.g., 0.5 for half speed, 2.0 for double speed): ").strip())
             else:
@@ -189,4 +249,10 @@ def main():
     play_audio(player, file_path, new_sample_rate, pipe_path if pipe_mode else None, ffmpeg_exist, out_format)
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"Error: {e}. Will exit in 10 seconds.")
+        time.sleep(10)
+        print("Exiting..")
+        time.sleep(0.1)
