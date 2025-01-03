@@ -97,7 +97,7 @@ def play_audio(player, file_path, new_sample_rate, pipe_path=None, ffmpeg_exist=
                 command = f'ffmpeg -i "{file_path}" -ar 44100 -f s16le -loglevel warning -stats - | paplay --rate={new_sample_rate} --latency=1'
             elif player == "ffplay":
                 if os.name == "nt":
-                    if not file_path:
+                    if not args.file:
                         command = f'ffmpeg -i {file_path} -ar 44100 -f wav -loglevel warning -stats - | ffplay -ar {new_sample_rate} -loglevel warning -autoexit -'
                     else:
                         command = f'ffmpeg -i "{file_path}" -ar 44100 -f wav -loglevel warning -stats - | ffplay -ar {new_sample_rate} -loglevel warning -autoexit -'
