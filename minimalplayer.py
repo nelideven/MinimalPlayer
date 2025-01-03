@@ -65,7 +65,7 @@ def calculate_sample_rate(speed_factor, pipe_path=None):
     else:
         return int(original_rate * speed_factor)
 
-def play_audio(player, file_path, new_sample_rate, pipe_path=None, ffmpeg_exist=True, out_format='s16le'):
+def play_audio(player, file_path, new_sample_rate, pipe_path=None, ffmpeg_exist=True, out_format='s16le', fileargs=""):
     if pipe_path:
         if ffmpeg_exist:
             print(f'Piping converted file {file_path} with format {out_format} to {pipe_path}. Press q to exit')
@@ -97,9 +97,11 @@ def play_audio(player, file_path, new_sample_rate, pipe_path=None, ffmpeg_exist=
                 command = f'ffmpeg -i "{file_path}" -ar 44100 -f s16le -loglevel warning -stats - | paplay --rate={new_sample_rate} --latency=1'
             elif player == "ffplay":
                 if os.name == "nt":
-                    if not args.file:
+                    if fileargs == None:
+                        print(fileargs)
                         command = f'ffmpeg -i {file_path} -ar 44100 -f wav -loglevel warning -stats - | ffplay -ar {new_sample_rate} -loglevel warning -autoexit -'
                     else:
+                        print(fileargs)
                         command = f'ffmpeg -i "{file_path}" -ar 44100 -f wav -loglevel warning -stats - | ffplay -ar {new_sample_rate} -loglevel warning -autoexit -'
                 else:
                     command = f'ffmpeg -i "{file_path}" -ar 44100 -f wav -loglevel warning -stats - | ffplay -ar {new_sample_rate} -loglevel warning -autoexit -'
@@ -246,7 +248,7 @@ def main():
 
     new_sample_rate = calculate_sample_rate(speed_factor, pipe_path if pipe_mode else None)
     print(f'Sample rate: {new_sample_rate}')
-    play_audio(player, file_path, new_sample_rate, pipe_path if pipe_mode else None, ffmpeg_exist, out_format)
+    play_audio(player, file_path, new_sample_rate, pipe_path if pipe_mode else None, ffmpeg_exist, out_format, args.file)
 
 if __name__ == '__main__':
     try:
